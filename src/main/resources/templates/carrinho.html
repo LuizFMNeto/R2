@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Carrinho – R2 Fitness</title>
+  <style>
+  body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    background-color: #0a1f33; /* azul escuro */
+    color: #ffffff;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    padding: 16px 24px;
+    background-color: #04162f; /* azul um pouco mais claro */
+    color: #fff;
+  }
+
+  .back-btn {
+    margin-right: 16px;
+    background-color: #2b6cb0;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .back-btn:hover {
+    background-color: #204d86;
+  }
+
+  main {
+    max-width: 800px;
+    margin: 40px auto;
+    background-color: #1e3a5f;
+    padding: 24px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.4);
+  }
+
+  .cart-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid #273663;
+  }
+
+  .cart-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .item-details {
+    flex: 1;
+    margin: 0 16px;
+  }
+
+  .item-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .item-price {
+    color: #63b3ed;
+    font-weight: bold;
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    color: #bbb;
+    cursor: pointer;
+  }
+
+  .btn-remove:hover {
+    color: #5e5d64;
+  }
+
+  .discount-section label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  #couponInput {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #3a4e80;
+    border-radius: 4px;
+    background-color: #1a2e5d;
+    color: white;
+  }
+
+  .btn-coupon {
+    padding: 10px 16px;
+    background-color: #2b6cb0;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .btn-coupon:hover {
+    background-color: #204d86;
+  }
+
+  .discount-message {
+    margin-top: 10px;
+    font-weight: bold;
+  }
+
+  .total {
+    text-align: right;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 24px;
+  }
+
+  .payment {
+    background-color: #1a2e5d;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 30px;
+  }
+
+  .payment h3 {
+    margin-top: 0;
+  }
+
+  .payment label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+
+  .payment input[type=radio] {
+    margin-right: 10px;
+    accent-color: #2605e1;
+  }
+
+  .btn-checkout {
+    width: 100%;
+    background-color: #2b6cb0;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-top: 16px;
+    cursor: pointer;
+  }
+
+  .btn-checkout:hover {
+    background-color: #204d86;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 30px;
+    color: #aaa;
+  }
+</style>
+
+</head>
+<body>
+
+  <div class="topbar">
+    <button class="back-btn" onclick="window.location.href='/'">← Voltar para Produtos</button>
+    <h1>Seu Carrinho</h1>
+  </div>
+
+  <main>
+    <div id="cartItems"></div>
+
+    <div class="discount-section">
+      <label for="couponInput">Cupom de Desconto:</label>
+      <div style="display:flex; gap:12px;">
+        <input type="text" id="couponInput" placeholder="Digite o cupom">
+        <button class="btn-coupon" onclick="applyCoupon()">Aplicar</button>
+      </div>
+      <div id="discountMessage" class="discount-message"></div>
+    </div>
+
+    <div class="total" id="total"></div>
+
+    <div class="payment" id="paymentSection" style="display:none">
+      <h3>Modo de pagamento:</h3>
+      <label><input type="radio" name="payment" value="pix" checked> PIX</label>
+      <label><input type="radio" name="payment" value="boleto"> Boleto</label>
+      <label><input type="radio" name="payment" value="cartao"> Cartão de crédito</label>
+      <button class="btn-checkout" onclick="checkout()">Finalizar Compra</button>
+    </div>
+
+    <div class="empty" id="emptyMessage" style="display:none">Seu carrinho está vazio.</div>
+  </main>
+
+  <script>
+    function getCart() {
+      return JSON.parse(localStorage.getItem("carrinho")) || [];
+    }
+
+    function setCart(cart) {
+      localStorage.setItem("carrinho", JSON.stringify(cart));
+    }
+
+    const cartItems = document.getElementById("cartItems");
+    const totalEl = document.getElementById("total");
+    const emptyMsg = document.getElementById("emptyMessage");
+    const paySection = document.getElementById("paymentSection");
+
+    let appliedCoupon = null;
+    let discountPercent = 0;
+
+    const coupons = {
+      "R2FIT10": 10,
+      "R2VIP20": 20,
+      "BEMVINDO5": 5
+    };
+
+    function applyCoupon() {
+      const input = document.getElementById("couponInput").value.trim().toUpperCase();
+      const message = document.getElementById("discountMessage");
+
+      if (coupons[input]) {
+        appliedCoupon = input;
+        discountPercent = coupons[input];
+        message.textContent = `Cupom "${input}" aplicado! ${discountPercent}% de desconto.`;
+        message.style.color = "#4caf50";
+      } else {
+        appliedCoupon = null;
+        discountPercent = 0;
+        message.textContent = `Cupom inválido.`;
+        message.style.color = "#e91e63";
+      }
+
+      renderCart();
+    }
+
+    function renderCart() {
+      const cart = getCart();
+      cartItems.innerHTML = "";
+
+      if (cart.length === 0) {
+        emptyMsg.style.display = "block";
+        paySection.style.display = "none";
+        totalEl.textContent = "";
+        return;
+      }
+
+      emptyMsg.style.display = "none";
+      paySection.style.display = "block";
+
+      let total = 0;
+
+      cart.forEach((prod, idx) => {
+        let precoNum = parseFloat(prod.price.replace(/[^0-9,]/g, '').replace(',', '.'));
+        total += precoNum;
+
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.dataset.index = idx;
+        div.innerHTML = `
+          <img src="${prod.image}" alt="${prod.title}">
+          <div class="item-details">
+            <div class="item-title">${prod.title}</div>
+            <div class="item-price">${prod.price}</div>
+          </div>
+          <button class="btn-remove">Remover</button>
+        `;
+        cartItems.appendChild(div);
+      });
+
+      if (discountPercent > 0) {
+        const desconto = total * (discountPercent / 100);
+        const totalComDesconto = total - desconto;
+        totalEl.innerHTML = `
+          Subtotal: R$ ${total.toFixed(2).replace('.', ',')}<br>
+          Desconto (${discountPercent}%): -R$ ${desconto.toFixed(2).replace('.', ',')}<br>
+          <strong>Total: R$ ${totalComDesconto.toFixed(2).replace('.', ',')}</strong>
+        `;
+      } else {
+        totalEl.innerHTML = `Total: R$ ${total.toFixed(2).replace('.', ',')}`;
+      }
+    }
+
+    cartItems.addEventListener("click", e => {
+      if (!e.target.classList.contains("btn-remove")) return;
+      const idx = Number(e.target.closest(".cart-item").dataset.index);
+      let cart = getCart();
+      cart.splice(idx, 1);
+      setCart(cart);
+      renderCart();
+    });
+
+    function checkout() {
+      const method = document.querySelector('input[name="payment"]:checked').value;
+      alert(`Compra realizada via ${method.toUpperCase()}!`);
+      localStorage.removeItem("carrinho");
+      appliedCoupon = null;
+      discountPercent = 0;
+      renderCart();
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>

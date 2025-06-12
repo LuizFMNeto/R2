@@ -1,11 +1,13 @@
 package com.example.R2.repository;
-
+import org.springframework.stereotype.Repository;
 import com.example.R2.model.Pedido;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+
+@Repository
 public class PedidoRepository {
     //Lista de objetos instanciados do Model
     private List<Pedido> pedidos = new ArrayList<>();
